@@ -41,13 +41,25 @@ func CosineSimilarity(doc1 map[int]float64, doc2 map[int]float64) float64 {
 	return Similarity
 }
 
-func showCluster(cluster_doc map[int][]int) {
+func showCluster(cluster_doc map[int][]int, docid int) {
+	fmt.Println(docid)
+	file, err := os.Create(strconv.Itoa(docid) + ".txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer file.Close()
+	w := bufio.NewWriter(file)
+	content := ""
 	for _, list := range cluster_doc {
 		for doc := range list {
-			fmt.Println(list[doc] + 1)
+			content += strconv.Itoa(list[doc]+1) + "\n"
 		}
-		fmt.Println()
+		content += "\n"
 	}
+
+	n4, err := w.WriteString(content)
+	fmt.Printf("wrote %d bytes\n", n4)
+	w.Flush()
 }
 
 func main() {
@@ -80,14 +92,15 @@ func main() {
 		doc_cluster[index] = index
 		array := []int{index}
 		cluster_doc[index] = array
-		fmt.Println(index)
+		// fmt.Println(index)
 	}
 
 	sort.Float64s(SimArray)
 	// small to big
 	// single link,
 	cluster_count := 1095
-	for index := len(SimArray) - 1; cluster_count >= 8; index-- {
+	index := len(SimArray) - 1
+	for cluster_count > 20 {
 		// // max cosine~
 		doc1 := SimMap[SimArray[index]][0]
 		doc2 := SimMap[SimArray[index]][1]
@@ -104,7 +117,48 @@ func main() {
 			}
 			delete(cluster_doc, cluster2)
 		}
-		// fmt.Println(SimArray[index], doc1, doc2)
+		index--
 	}
-	showCluster(cluster_doc)
+	showCluster(cluster_doc, cluster_count)
+	for cluster_count > 13 {
+		// // max cosine~
+		doc1 := SimMap[SimArray[index]][0]
+		doc2 := SimMap[SimArray[index]][1]
+		// if not the same cluster, merge and update cosine
+		cluster1 := doc_cluster[doc1]
+		cluster2 := doc_cluster[doc2]
+		if cluster1 != cluster2 {
+			cluster_count--
+			// merge cluster 2 to cluster 1
+			for cluster2_doc_index := range cluster_doc[cluster2] {
+				cluster2_doc := cluster_doc[cluster2][cluster2_doc_index]
+				cluster_doc[cluster1] = append(cluster_doc[cluster1], cluster2_doc)
+				doc_cluster[cluster2_doc] = cluster1
+			}
+			delete(cluster_doc, cluster2)
+		}
+		index--
+	}
+	showCluster(cluster_doc, cluster_count)
+	for cluster_count > 8 {
+		// // max cosine~
+		doc1 := SimMap[SimArray[index]][0]
+		doc2 := SimMap[SimArray[index]][1]
+		// if not the same cluster, merge and update cosine
+		cluster1 := doc_cluster[doc1]
+		cluster2 := doc_cluster[doc2]
+		if cluster1 != cluster2 {
+			cluster_count--
+			// merge cluster 2 to cluster 1
+			for cluster2_doc_index := range cluster_doc[cluster2] {
+				cluster2_doc := cluster_doc[cluster2][cluster2_doc_index]
+				cluster_doc[cluster1] = append(cluster_doc[cluster1], cluster2_doc)
+				doc_cluster[cluster2_doc] = cluster1
+			}
+			delete(cluster_doc, cluster2)
+		}
+		index--
+	}
+	showCluster(cluster_doc, cluster_count)
+	fmt.Println("System end")
 }
