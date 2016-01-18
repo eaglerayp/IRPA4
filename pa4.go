@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func readDoc(docid int) map[int]float64 {
@@ -42,7 +43,7 @@ func CosineSimilarity(doc1 map[int]float64, doc2 map[int]float64) float64 {
 }
 
 func showCluster(cluster_doc map[int][]int, docid int) {
-	fmt.Println(docid)
+	// fmt.Println(docid)
 	file, err := os.Create(strconv.Itoa(docid) + ".txt")
 	if err != nil {
 		log.Fatal(err)
@@ -51,18 +52,20 @@ func showCluster(cluster_doc map[int][]int, docid int) {
 	w := bufio.NewWriter(file)
 	content := ""
 	for _, list := range cluster_doc {
+		sort.Ints(list)
 		for doc := range list {
 			content += strconv.Itoa(list[doc]+1) + "\n"
 		}
 		content += "\n"
 	}
 
-	n4, err := w.WriteString(content)
-	fmt.Printf("wrote %d bytes\n", n4)
+	w.WriteString(content)
+	// fmt.Printf("wrote %d bytes\n", n4)
 	w.Flush()
 }
 
 func main() {
+	start_Time := time.Now().Unix()
 	docnum := 1095
 	var doclist [1095]map[int]float64
 	for i := 1; i <= docnum; i++ {
@@ -160,5 +163,7 @@ func main() {
 		index--
 	}
 	showCluster(cluster_doc, cluster_count)
-	fmt.Println("System end")
+	end_Time := time.Now().Unix()
+	duration := end_Time - start_Time
+	fmt.Println("System end, duration :", duration, "s")
 }
